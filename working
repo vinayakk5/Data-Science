@@ -1,0 +1,178 @@
+from bs4 import BeautifulSoup as bs
+from selenium import webdriver
+import urllib
+from urllib.request import Request, urlopen
+import ssl
+import time
+import numpy
+from openpyxl import Workbook
+import openpyxl
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+cd=[]
+olx=[]
+cr24=[]
+wb = openpyxl.load_workbook('Used_Car_Data_.xlsx')
+ws = wb.get_sheet_by_name('Sheet1')
+heading=1
+cities=['mumbai','delhi','bangalore','hyderabad','ahmedabad','chennai','kolkata','pune','jaipur','lucknow','bhopal','vishakhapatnam','patna','ranchi','srinagar','raipur','chandigarh','guwahati','bhubaneswar','thiruvananthapuram','dehradun','jammu','agartala','imphal','pondicherry','gandhinagar','shimla','amaravati','gangtok']
+carname=input("CAR NAME:")
+carmodel=input("CAR MODEL:")
+yup=carmodel
+fyear=input("FROM YEAR:")
+tyear=input("TO YEAR:")
+fuletype=input("FULE TYPE:")
+if len(carmodel)>1:
+    if " " in carname:
+        cname=carname.split()
+        cname="-".join(cname)
+    else:
+        cname=carname
+    yup=carmodel
+    if " " in carmodel:
+        carmodel=carmodel.split()
+        carmodel="-".join(carmodel)
+    carmodel="-"+carmodel
+for city in cities:
+    if len(carmodel)>1:
+        url="https://www.cardekho.com/used-"+cname+carmodel+"+"+fyear+"-"+tyear+"-year+cars+in+"+city 
+        
+    else:
+        if " " in carname:
+            cname=carname.split()
+            cname="-".join(cname)
+        else:
+            cname=carname
+        city=city
+        url="https://www.cardekho.com/used-"+cname+"+"+fyear+"-"+tyear+"-year+cars+in+"+city
+
+    web=webdriver.Chrome()
+    web.get(url)
+    web.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+    time.sleep(3)
+    for i in range(True):
+        try:
+            web.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+            time.sleep(10)
+        except:
+            break
+            pass
+    time.sleep(5)
+    t=web.find_element_by_class_name("listitems")
+    soup=bs(t.get_attribute('innerHTML'),"html.parser")
+    i=2
+    price=[]
+    fuletype=[]
+    kmtraveled=[]
+    variant=[]
+    carn=[]
+    carm=[]
+    year=[]
+    about=[]
+    place=[]
+    for data in soup.find_all("div",{"class":"gsc_col-sm-12 gsc_col-md-12 trustmarkbox holder"}):
+        for aa in data.find_all("div",{"class":"title"}):
+            aa=aa.text
+            about.append(aa)
+        for div in data.find_all("div",{"class":"dotlist truncate"}):
+            st=div.text
+            ind=st.index("km")
+            kmtraveled.append(div.text[:ind])
+            sst=div.text.split("\xa0")
+            ftype=sst[1]
+            fuletype.append(ftype[:-2])
+        for span in data.find_all("span",{"class":"amnt"}):
+            price.append(span.text)
+        for span in data.find_all("span",{"class":"truncate"}):
+            place.append(span.text)
+    aboutu=[]
+    for i in about:
+        if "New" in i :
+            aboutu.append(i.replace("New",""))
+        else:
+            aboutu.append(i)
+    for i in aboutu:
+        i=i.split()
+        year.append(int(i[0]))
+        carn.append(i[1])
+        ca=i[2]
+        carm.append(ca)
+        cv=i[3:]
+        cv=" ".join(cv)
+        variant.append(cv)
+    price
+    priceu=[]
+    for i in price:
+        try:
+            i=i.split()
+            i=i[0]
+            i=float(i)
+            i=int(i*100000)
+            priceu.append(i)
+        except:
+            priceu.append("NA")
+    place
+    placeu=[]
+    for i in place:
+        i=i[4:]
+        if len(i)==0:
+            placeu.append("NA")
+        else:
+            placeu.append(i)
+    #placeu
+    kmtraveled
+    kmtraveledu=[]
+    for i in kmtraveled:
+        if "," in i:
+            i=i.replace(",","")
+        if " " in i:
+            i=i.replace(" ","")
+        try:
+            kmtraveledu.append(int(i))
+        except:
+            kmtraveledu.append("NA")
+    
+
+    doc=[]
+    for i in range(len(priceu)):
+        li=[carn[i],carm[i],variant[i],fuletype[i],year[i],priceu[i],kmtraveledu[i],placeu[i],city,"cardekho.com"]
+        doc.append(li)
+    if len(carmodel)<1:
+        docu=[]
+        for i in doc:
+            if " " in carname:
+                if str(carname.split()[0]).lower() in str(i[0]).lower():
+                    docu.append(i)
+            else:
+                if str(carname).lower() in str(i[0]).lower():
+                    docu.append(i)
+    else:
+        docu=[]
+        for i in doc:
+            if " " in carname:
+                if str(carname.split()[0]).lower() in str(i[0]).lower() and str(yup).lower() in str(i[1]).lower() :
+                    docu.append(i)
+            else:
+                if str(carname).lower() in str(i[0]).lower() and str(yup).lower() in str(i[1]).lower():
+                    docu.append(i)
+    docu=sorted(docu)
+    if heading==1:
+        conten=["Car Name","Car Model","Varient","Fule Type","Year","Price","Kilometer Traveled","Place","City","Source"]
+        ws.append(conten)
+        heading=2
+    for i in docu:
+        cd.append(i)
+cd=sorted(cd)
+cdu=[]
+for i in cd:
+    if len(i)>0:
+        cdu.append(i)
+res = list(set(tuple(sub) for sub in cdu))    
+for row in res:
+    ws.append(row)
+    #book.save("Used_Car_Data_.xlsx")
+wb.save("Used_Car_Data_.xlsx")
+time.sleep(5)
